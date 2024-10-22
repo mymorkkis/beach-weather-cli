@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import NamedTuple
 
 import requests
@@ -6,6 +6,7 @@ from rich import print
 
 
 class PointWeatherData(NamedTuple):
+    time: str
     air_temperature: float
     wave_height: float
     wind_speed: float
@@ -20,8 +21,9 @@ class StormglassAPI:
         self.token = token
         self.source = source
 
-    def get_point_weather_data(self) -> PointWeatherData:
-        now_timestamp = str(datetime.now())
+    def get_point_weather_data(self, hours: int) -> list[PointWeatherData]:
+        start_timestamp = datetime.now()
+        end_timestamp = start_timestamp + timedelta(hours=hours)
 
         response = requests.get(
             "https://api.stormglass.io/v2/weather/point",
@@ -30,8 +32,8 @@ class StormglassAPI:
                 "lng": -9.24349946254499,
                 "params": "airTemperature,windSpeed,waveHeight",
                 "source": self.source,
-                "start": now_timestamp,
-                "end": now_timestamp,
+                "start": str(start_timestamp),
+                "end": str(end_timestamp),
             },
             headers={"Authorization": self.token},
         )
@@ -42,11 +44,12 @@ class StormglassAPI:
             f"Used {resp["meta"]["requestCount"]} out of {resp["meta"]["dailyQuota"]} daily requests"
         )
 
-        # TODO guard against no data and handle multiple hours
-        data = resp["hours"][0]
-
-        return PointWeatherData(
-            air_temperature=data["airTemperature"][self.source],
-            wave_height=data["waveHeight"][self.source],
-            wind_speed=data["windSpeed"][self.source],
-        )
+        return [
+            PointWeatherData(
+                time=str(datetime.fromisoformat(data["time"]).time()),
+                air_temperature=data["airTemperature"][self.source],
+                wave_height=data["waveHeight"][self.source],
+                wind_speed=data["windSpeed"][self.source],
+            )
+            for data in resp["hours"]
+        ]
