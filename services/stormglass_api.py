@@ -1,8 +1,15 @@
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import NamedTuple
 
 import requests
 from rich import print
+
+
+# TODO Add the data source full name to the cli help txt
+class DataSource(str, Enum):
+    noaa = "noaa"  # National Oceanic and Atmospheric Administration
+    sg = "sg"  # Storm Glass AI
 
 
 class PointWeatherData(NamedTuple):
@@ -16,7 +23,7 @@ class StormglassAPI:
     def __init__(
         self,
         token: str,
-        source: str = "sg",
+        source: DataSource = "sg",
     ) -> None:
         self.token = token
         self.source = source
